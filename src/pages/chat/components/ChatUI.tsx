@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import type { Group } from "@/config/groups";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
+import MarkdownMessage from './MarkdownMessage';
 import { SharePoster } from '@/pages/chat/components/SharePoster';
 import { MembersManagement } from '@/pages/chat/components/MembersManagement';
 import Sidebar from './Sidebar';
@@ -609,43 +606,10 @@ const ChatUI = () => {
                         <div className={`mt-1 p-3 rounded-lg shadow-sm chat-message ${
                           message.sender.name === userStore.userInfo.nickname ? "bg-blue-500 text-white text-left" : "bg-card"
                         }`}>
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm, remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                            className={`prose dark:prose-invert max-w-none ${
-                              message.sender.name === userStore.userInfo.nickname ? "text-white [&_*]:text-white" : ""
-                            }
-                            [&_h2]:py-1
-                            [&_h2]:m-0
-                            [&_h3]:py-1.5
-                            [&_h3]:m-0
-                            [&_p]:m-0 
-                            [&_pre]:bg-gray-900 
-                            [&_pre]:p-2
-                            [&_pre]:m-0 
-                            [&_pre]:rounded-lg
-                            [&_pre]:text-gray-100
-                            [&_pre]:whitespace-pre-wrap
-                            [&_pre]:break-words
-                            [&_pre_code]:whitespace-pre-wrap
-                            [&_pre_code]:break-words
-                            [&_code]:text-sm
-                            [&_code]:text-gray-400
-                            [&_code:not(:where([class~="language-"]))]:text-pink-500
-                            [&_code:not(:where([class~="language-"]))]:bg-transparent
-                            [&_a]:text-blue-500
-                            [&_a]:no-underline
-                            [&_ul]:my-2
-                            [&_ol]:my-2
-                            [&_li]:my-1
-                            [&_blockquote]:border-l-4
-                            [&_blockquote]:border-border
-                            [&_blockquote]:pl-4
-                            [&_blockquote]:my-2
-                            [&_blockquote]:italic`}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
+                          <MarkdownMessage
+                            content={message.content}
+                            ownClassName={message.sender.name === userStore.userInfo.nickname ? "text-white [&_*]:text-white" : ""}
+                          />
                           {message.isAI && isTyping && currentMessageRef.current === message.id && (
                             <span className="typing-indicator ml-1">▋</span>
                           )}
