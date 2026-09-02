@@ -1,13 +1,11 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 export default function Login() {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  React.useEffect(() => {
+  useEffect(() => {
     const isLogin = localStorage.getItem('token');
     if (isLogin) {
       window.location.href = '/';
@@ -20,8 +18,9 @@ export default function Login() {
     const linuxdoToken = urlParams.get('linuxdo_token');
     const errorMsg = urlParams.get('error');
 
-    if (googleToken || githubToken || linuxdoToken) {
-      localStorage.setItem('token', googleToken || githubToken || linuxdoToken);
+    const oauthToken = googleToken || githubToken || linuxdoToken;
+    if (oauthToken) {
+      localStorage.setItem('token', oauthToken);
       window.history.replaceState({}, '', '/login');
       window.location.href = '/';
     } else if (errorMsg) {
@@ -48,14 +47,14 @@ export default function Login() {
     <div className="fixed inset-0 bg-white flex items-center justify-center">
       <div className={`w-full ${isMobile ? 'max-w-sm px-6' : 'max-w-md px-8'} ${isMobile ? 'py-6' : 'py-8'}`}>
         <div className="flex items-center justify-center mb-6">
-          <span 
-            style={{fontFamily: 'Audiowide, system-ui', color: '#ff6600'}} 
+          <span
+            style={{fontFamily: 'Audiowide, system-ui', color: '#ff6600'}}
             className={`${isMobile ? 'text-2xl' : 'text-3xl'} ml-2`}
           >
             botgroup.chat
           </span>
         </div>
-        
+
         <div className={`text-gray-500 ${isMobile ? 'mb-6' : 'mb-8'} text-center ${isMobile ? 'text-sm' : 'text-base'}`}>
           登录以继续
         </div>
