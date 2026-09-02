@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import BasicLayout from './layouts/BasicLayout';
 import AuthGuard from './components/AuthGuard';
 import PageLoading from './components/PageLoading';
+import NotFound from './components/NotFound';
 
 const Login = lazy(() => import('./pages/login'));
 const Chat = lazy(() => import('./pages/chat'));
@@ -48,11 +49,16 @@ export const router = createBrowserRouter([
         <BasicLayout />
       </AuthGuard>
     ),
+    errorElement: <NotFound />,
     children: [
       {
         path: '',
         element: lazyPage(<Chat />),
       },
     ],
+  },
+  {
+    path: '*',
+    element: <NotFound />,
   },
 ]);
