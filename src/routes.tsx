@@ -1,38 +1,45 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import Login from './pages/login';
-import Chat from './pages/chat';
-import AiGamePage from './pages/ai-game';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { createBrowserRouter } from 'react-router-dom';
 import BasicLayout from './layouts/BasicLayout';
 import AuthGuard from './components/AuthGuard';
+import PageLoading from './components/PageLoading';
+
+const Login = lazy(() => import('./pages/login'));
+const Chat = lazy(() => import('./pages/chat'));
+const AiGamePage = lazy(() => import('./pages/ai-game'));
+
+const lazyPage = (node: ReactNode) => (
+  <Suspense fallback={<PageLoading />}>{node}</Suspense>
+);
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Login />,
+    element: lazyPage(<Login />),
   },
   {
     path: '/ai-game',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/ai-game/whoisundercover',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/ai-game/whoisundercover/:roomId',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/ai-game/whoishuman',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/ai-game/whoishuman/:roomId',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/ai-game/:roomId',
-    element: <AiGamePage />,
+    element: lazyPage(<AiGamePage />),
   },
   {
     path: '/',
@@ -44,8 +51,8 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '',
-        element: <Chat />,
+        element: lazyPage(<Chat />),
       },
     ],
   },
-]); 
+]);

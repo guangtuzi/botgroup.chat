@@ -1,8 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import domtoimage from 'dom-to-image';
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Share2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SharePosterProps {
@@ -12,7 +11,6 @@ interface SharePosterProps {
 }
 
 export function SharePoster({ isOpen, onClose, chatAreaRef }: SharePosterProps) {
-  const posterRef = useRef<HTMLDivElement>(null);
   const [posterImage, setPosterImage] = React.useState<string>('');
 
   useEffect(() => {

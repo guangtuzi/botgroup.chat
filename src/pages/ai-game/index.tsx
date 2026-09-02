@@ -1446,7 +1446,6 @@ function AiGameHome() {
 function AiGameRoom() {
   const { roomId = '' } = useParams();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const observeInvite = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('observe') === '1';
   const [room, setRoom] = useState<GameRoomData | null>(null);
   const [players, setPlayers] = useState<GamePlayer[]>([]);
@@ -2090,16 +2089,16 @@ function AiGameRoom() {
           <section className="flex min-w-0 min-h-0 flex-col bg-muted">
             <div className="min-w-0 flex-1 overflow-y-auto px-2 py-2 md:px-3 md:py-3">
               <div className="mx-auto max-w-3xl min-w-0 space-y-3">
-                {isHumanHuntMode && currentStatus === 'playing' && humanHuntTurnState?.round > 0 && (
+                {isHumanHuntMode && currentStatus === 'playing' && (humanHuntTurnState?.round ?? 0) > 0 && (
                   <div className="sticky top-0 z-10 rounded-lg border border-[#c2410c]/30 bg-orange-50 px-3 py-2 text-sm shadow-sm dark:bg-orange-950/20">
-                    <div className="text-xs text-muted-foreground">第 {humanHuntTurnState.round} 轮自由讨论</div>
+                    <div className="text-xs text-muted-foreground">第 {humanHuntTurnState?.round} 轮自由讨论</div>
                     <div className="mt-0.5 font-medium text-[#c2410c]">
-                      {humanHuntTurnState.speechCount}/{humanHuntTurnState.minSpeechCount} 条 · {humanHuntTurnState.uniqueSpeakerCount}/{humanHuntTurnState.minUniqueSpeakerCount} 人后可投票
+                      {humanHuntTurnState?.speechCount}/{humanHuntTurnState?.minSpeechCount} 条 · {humanHuntTurnState?.uniqueSpeakerCount}/{humanHuntTurnState?.minUniqueSpeakerCount} 人后可投票
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {humanHuntTurnState.currentSpeaker
-                        ? `${humanHuntTurnState.currentSpeaker.display_name} 先开场`
-                        : humanHuntTurnState.canVote
+                      {humanHuntTurnState?.currentSpeaker
+                        ? `${humanHuntTurnState?.currentSpeaker?.display_name} 先开场`
+                        : humanHuntTurnState?.canVote
                           ? '可以投票，也可以继续聊'
                           : '自由发言中'}
                     </div>

@@ -176,7 +176,7 @@ const AdBanner: React.FC<AdBannerProps> = ({ show, closeAd }) => {
 };
 
 const AdBannerMobile: React.FC<AdBannerProps> = ({ show, closeAd }) => {
-  const [isMobile, setIsMobile] = useState(false);
+  const [, setIsMobile] = useState(false);
 
   React.useEffect(() => {
     const checkDevice = () => {

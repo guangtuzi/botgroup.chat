@@ -4,9 +4,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 export async function request(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem('token');
     
-    const headers = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string> | undefined),
     };
 
     if (token) {

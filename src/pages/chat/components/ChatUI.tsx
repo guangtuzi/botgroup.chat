@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Share2, Settings2, ChevronLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 
-import type { AICharacter } from "@/config/aiCharacters";
+import type { Group } from "@/config/groups";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -25,6 +25,35 @@ import { AdBanner, AdBannerMobile } from './AdSection';
 import { useUserStore } from '@/store/userStore';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getAvatarData } from '@/utils/avatar';
+
+// 群成员：真人与 AI 角色共用的最小结构（与 MembersManagement 的 User 保持一致）
+type ChatUser = {
+  id: number | string;
+  name: string;
+  avatar?: string;
+};
+
+// /api/init 返回的 AI 角色，字段比 config 里的 AICharacter 更多（rag / knowledge 等）
+type AiCharacterData = ChatUser & {
+  personality?: string;
+  model?: string;
+  rag?: boolean;
+  knowledge?: string;
+  custom_prompt?: string;
+  description?: string;
+};
+
+
+type MessageSender = ChatUser;
+
+type Message = {
+  id: number;
+  sender: MessageSender;
+  content: string;
+  isAI: boolean;
+  // 流式响应失败时打标，用于渲染错误态气泡
+  isError?: boolean;
+};
 
 
 // 修改 KaTeXStyle 组件
@@ -64,22 +93,22 @@ const ChatUI = () => {
   const id = urlParams.get('id')? parseInt(urlParams.get('id')!) : 0;
   const joinGroupId = urlParams.get('join');
   // 1. 所有的 useState 声明
-  const [groups, setGroups] = useState([]);
-  const [selectedGroupIndex, setSelectedGroupIndex] = useState(id);
-  const [group, setGroup] = useState(null);
-  const [groupAiCharacters, setGroupAiCharacters] = useState([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupIndex] = useState(id);
+  const [group, setGroup] = useState<Group | null>(null);
+  const [groupAiCharacters, setGroupAiCharacters] = useState<AiCharacterData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isGroupDiscussionMode, setIsGroupDiscussionMode] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [allNames, setAllNames] = useState([]);
+  const [users, setUsers] = useState<ChatUser[]>([]);
+  const [allNames, setAllNames] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [showAd, setShowAd] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
-  const [pendingContent, setPendingContent] = useState("");
+  const [, setPendingContent] = useState("");
   const [initError, setInitError] = useState<string | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping] = useState(false);
   const [mutedUsers, setMutedUsers] = useState<string[]>([]);
   const [showPoster, setShowPoster] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // 默认关闭，稍后根据设备类型设置
@@ -97,7 +126,6 @@ const ChatUI = () => {
   const accumulatedContentRef = useRef(""); 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
-  const abortController = useRef(new AbortController());
 
   // 添加一个 ref 来跟踪是否已经初始化
   const isInitialized = useRef(false);
@@ -140,9 +168,9 @@ const ChatUI = () => {
           setIsInitializing(false);
           return;
         }
-        const characters = data.characters;
-        setGroups(data.groups);
-        setGroup(group);
+        const characters = data.characters as AiCharacterData[];
+        setGroups(data.groups as Group[]);
+        setGroup(group as Group);
         setIsInitializing(false);
         setIsGroupDiscussionMode(group.isGroupDiscussionMode);
         const groupAiCharacters = characters
@@ -212,7 +240,7 @@ const ChatUI = () => {
   useEffect(() => {
     if (userStore.userInfo && users.length > 0) {
       setUsers(prev => [
-        { id: 1, name: userStore.userInfo.nickname, avatar: userStore.userInfo.avatar_url? userStore.userInfo.avatar_url : null },
+        { id: 1, name: userStore.userInfo.nickname, avatar: userStore.userInfo.avatar_url ?? undefined },
         ...prev.slice(1) // 保留其他 AI 角色
       ]);
     }
@@ -222,11 +250,6 @@ const ChatUI = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  const handleRemoveUser = (userId: number) => {
-    setUsers(users.filter(user => user.id !== userId));
-  };
-
   const handleToggleMute = (userId: string) => {
     setMutedUsers(prev => 
       prev.includes(userId) 
@@ -304,12 +327,14 @@ const ChatUI = () => {
         body: JSON.stringify({ message: inputMessage, history: messageHistory, availableAIs: groupAiCharacters })
       });
       const shedulerData = await shedulerResponse.json();
-      const selectedAIs = shedulerData.selectedAIs;
-      selectedGroupAiCharacters = selectedAIs.map(ai => groupAiCharacters.find(c => c.id === ai));
+      const selectedAIs = shedulerData.selectedAIs as string[];
+      selectedGroupAiCharacters = selectedAIs
+        .map((ai: string) => groupAiCharacters.find(c => c.id === ai))
+        .filter((c): c is AiCharacterData => c !== undefined);
     }
     for (let i = 0; i < selectedGroupAiCharacters.length; i++) {
       //禁言
-      if (mutedUsers.includes(selectedGroupAiCharacters[i].id)) {
+      if (mutedUsers.includes(String(selectedGroupAiCharacters[i].id))) {
         continue;
       }
       // 创建当前 AI 角色的消息
@@ -342,7 +367,7 @@ const ChatUI = () => {
             aiName: selectedGroupAiCharacters[i].name,
             rag: selectedGroupAiCharacters[i].rag,
             knowledge: selectedGroupAiCharacters[i].knowledge,
-            custom_prompt: selectedGroupAiCharacters[i].custom_prompt.replace('#groupName#', group.name) + "\n" + group.description
+            custom_prompt: (selectedGroupAiCharacters[i].custom_prompt ?? '').replace('#groupName#', group?.name ?? '') + "\n" + (group?.description ?? '')
           }),
         });
 
@@ -364,12 +389,13 @@ const ChatUI = () => {
         while (true) {
           //console.log("读取中")
           const startTime = Date.now();
-          let { done, value } = await Promise.race([
+          const raceResult = await Promise.race([
             reader.read(),
-            new Promise((_, reject) => 
+            new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('响应超时')), timeout - (Date.now() - startTime))
             )
-          ]);
+          ]) as ReadableStreamReadResult<Uint8Array>;
+          let { done, value } = raceResult;
 
           if (Date.now() - startTime > timeout) {
             reader.cancel();
@@ -446,24 +472,21 @@ const ChatUI = () => {
 
       } catch (error) {
         console.error("发送消息失败:", error);
+        const errText = error instanceof Error ? error.message : String(error);
         messageHistory.push({
           role: 'user',
-          content: aiMessage.sender.name + "对不起，我还不够智能，服务又断开了(错误：" + error.message + ")。",
+          content: aiMessage.sender.name + "对不起，我还不够智能，服务又断开了(错误：" + errText + ")。",
           name: aiMessage.sender.name
         });
         setMessages(prev => prev.map(msg => 
           msg.id === aiMessage.id 
-            ? { ...msg, content: "对不起，我还不够智能，服务又断开了(错误：" + error.message + ")。", isError: true }
+            ? { ...msg, content: "对不起，我还不够智能，服务又断开了(错误：" + errText + ")。", isError: true }
             : msg
         ));
       }
     }
     
     setIsLoading(false);
-  };
-
-  const handleCancel = () => {
-    abortController.current.abort();
   };
 
   // 处理群组选择

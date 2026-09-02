@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import { Edit2Icon, LogOutIcon, CheckIcon, XIcon } from 'lucide-react';
 import { request } from '@/utils/request';
@@ -12,7 +12,7 @@ interface UserSectionProps {
 
 
 export const UserSection: React.FC<UserSectionProps> = ({ isOpen }) => {
-  const [isHovering, setIsHovering] = useState(false);
+  const [, setIsHovering] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState('');
