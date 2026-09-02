@@ -22,98 +22,26 @@ import { getPlayerRoleLabel, parseVoteResultMessage } from './voteMessage';
 import { buildAiGameChallengeUrl, buildHumanHuntChallengeUrl, parseChallengeLevel, parseHumanHuntChallengeLevel } from './share';
 import { createQrSvgDataUrl } from './qr';
 import { getHumanHuntTurnState } from './humanHunt';
+import {
+  playerStorageKey,
+  roomLevelStorageKey,
+  type CampaignProgress,
+} from './constants';
+import {
+  loadCampaignProgress,
+  saveCampaignProgress,
+  loadHumanHuntProgress,
+  saveHumanHuntProgress,
+} from './progress';
+import {
+  toUtcDate,
+  formatPercent,
+  formatCountdown,
+  resultStars,
+  extractUndercoverWordPair,
+  parseUndercoverMeta,
+} from './format';
 
-const playerStorageKey = (roomId: string) => `ai-game-player:${roomId}`;
-const roomLevelStorageKey = (roomId: string) => `ai-game-room-level:${roomId}`;
-const campaignProgressKey = 'ai-game-campaign-progress';
-const humanHuntProgressKey = 'ai-game-human-hunt-progress';
-
-interface CampaignProgress {
-  highestUnlockedLevel: number;
-  bestStars: Record<string, number>;
-  clearedAt: Record<string, string>;
-}
-
-function normalizeCampaignProgress(raw: any): CampaignProgress {
-  if (raw && typeof raw.highestUnlockedLevel === 'number' && raw.bestStars && raw.clearedAt) {
-    return {
-      highestUnlockedLevel: Math.max(1, Math.floor(raw.highestUnlockedLevel || 1)),
-      bestStars: raw.bestStars || {},
-      clearedAt: raw.clearedAt || {},
-    };
-  }
-
-  const bestStars: Record<string, number> = {};
-  const clearedAt: Record<string, string> = {};
-  let highestCleared = 0;
-
-  if (raw && typeof raw === 'object') {
-    Object.entries(raw).forEach(([key, value]) => {
-      const levelNumber = Number(key.replace(/^u/, ''));
-      const item = value as { stars?: number; clearedAt?: string };
-      if (!Number.isFinite(levelNumber) || levelNumber < 1 || !item?.stars) return;
-      bestStars[String(levelNumber)] = Math.max(0, Math.min(3, Number(item.stars) || 0));
-      if (item.clearedAt) clearedAt[String(levelNumber)] = item.clearedAt;
-      highestCleared = Math.max(highestCleared, levelNumber);
-    });
-  }
-
-  return {
-    highestUnlockedLevel: Math.max(1, highestCleared + 1),
-    bestStars,
-    clearedAt,
-  };
-}
-
-function loadCampaignProgress(): CampaignProgress {
-  try {
-    return normalizeCampaignProgress(JSON.parse(localStorage.getItem(campaignProgressKey) || '{}'));
-  } catch {
-    return normalizeCampaignProgress(null);
-  }
-}
-
-function saveCampaignProgress(progress: CampaignProgress) {
-  localStorage.setItem(campaignProgressKey, JSON.stringify(progress));
-}
-
-function loadHumanHuntProgress(): CampaignProgress {
-  try {
-    return normalizeCampaignProgress(JSON.parse(localStorage.getItem(humanHuntProgressKey) || '{}'));
-  } catch {
-    return normalizeCampaignProgress(null);
-  }
-}
-
-function saveHumanHuntProgress(progress: CampaignProgress) {
-  localStorage.setItem(humanHuntProgressKey, JSON.stringify(progress));
-}
-
-function toUtcDate(date?: string | null) {
-  if (!date) return null;
-  return new Date(date.endsWith('Z') ? date : `${date}Z`);
-}
-
-function formatPercent(value?: number | null) {
-  if (value == null || Number.isNaN(Number(value))) return '0%';
-  return `${Math.round(Number(value) * 100)}%`;
-}
-
-function formatCountdown(seconds: number) {
-  const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
-  const minutes = Math.floor(safeSeconds / 60);
-  const restSeconds = safeSeconds % 60;
-  return `${minutes}:${String(restSeconds).padStart(2, '0')}`;
-}
-
-function resultStars(result?: GameResult | null) {
-  return Math.max(0, Math.min(3, Math.round(Number(result?.human_accuracy || 0) * 3)));
-}
-
-function extractUndercoverWordPair(summary?: string | null) {
-  const match = summary?.match(/平民词是「(.+?)」，卧底词是「(.+?)」/);
-  return match ? { civilianWord: match[1], undercoverWord: match[2] } : null;
-}
 
 function PlayerAvatar({ player, revealed, compact = false }: { player: GamePlayer; revealed?: boolean; compact?: boolean }) {
   const avatar = getAvatarData(player.display_name);
@@ -125,20 +53,6 @@ function PlayerAvatar({ player, revealed, compact = false }: { player: GamePlaye
       </AvatarFallback>
     </Avatar>
   );
-}
-
-function parseUndercoverMeta(raw?: string | null) {
-  if (!raw?.startsWith('undercover|')) return null;
-  const parts = Object.fromEntries(raw.split('|').slice(1).map((part) => {
-    const idx = part.indexOf('=');
-    return idx >= 0 ? [part.slice(0, idx), part.slice(idx + 1)] : [part, ''];
-  }));
-  return {
-    role: parts.role,
-    word: parts.word,
-    civilianWord: parts.civilian,
-    undercoverWord: parts.undercover,
-  };
 }
 
 function RuleList({ items }: { items: string[] }) {
